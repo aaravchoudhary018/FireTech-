@@ -16,7 +16,7 @@ LIMIT = 512 * 1024
 
 def run_demo(action, payload, snapshot=None):
     if action not in ACTIONS or not isinstance(payload, dict):
-        raise ValueError('Unknown demo action.')
+        raise ValueError('Unknown action.')
     # Every request gets its own disposable SQLite database. A visitor's saved
     # snapshot is untrusted demo input, never an account or real reservation.
     with tempfile.TemporaryDirectory(prefix='routekind-') as folder:
@@ -25,21 +25,22 @@ def run_demo(action, payload, snapshot=None):
             app.init_db()
             if snapshot is not None:
                 if not isinstance(snapshot, dict) or set(snapshot) != set(TABLES):
-                    raise ValueError('Invalid saved demo. Clear this site’s browser data to reset it.')
+                    raise ValueError('Invalid saved data. Clear this site’s browser data to reset it.')
                 if len(json.dumps(snapshot).encode()) > LIMIT:
-                    raise ValueError('Demo storage is full. Clear this site’s browser data to reset it.')
+                    raise ValueError('Planner storage is full. Clear this site’s browser data to reset it.')
                 with app.connection() as conn:
                     for table in TABLES:
                         rows = snapshot[table]
                         if not isinstance(rows, list) or len(rows) > 250:
-                            raise ValueError('Invalid demo records or demo limit reached.')
+                            raise ValueError('Invalid records or storage limit reached.')
                         conn.execute(f'DELETE FROM {table}')
                         for row in rows:
                             if (not isinstance(row, dict) or set(row) != {'id', 'data'}
                                     or not isinstance(row['id'], str) or len(row['id']) > 100
                                     or not isinstance(row['data'], dict)):
-                                raise ValueError('Invalid saved demo record.')
+                                raise ValueError('Invalid saved record.')
                             app.put(conn, table, row['id'], row['data'])
+            app.migrate_locations()
             if action == 'state':
                 with app.connection() as conn:
                     result = {'stops': app.STOPS, 'edges': app.EDGES,
@@ -52,7 +53,7 @@ def run_demo(action, payload, snapshot=None):
                 saved = {table: [{'id': r['id'], 'data': json.loads(r['data'])}
                     for r in conn.execute(f'SELECT id,data FROM {table}')] for table in TABLES}
             if any(len(rows) > 250 for rows in saved.values()) or len(json.dumps(saved).encode()) > LIMIT:
-                raise ValueError('Demo storage is full. Clear this site’s browser data to reset it.')
+                raise ValueError('Planner storage is full. Clear this site’s browser data to reset it.')
             return {**result, 'storage_mode': 'browser', 'demo_snapshot': saved}
         finally:
             app.REQUEST_DB.reset(token)
@@ -90,6 +91,6 @@ class handler(BaseHTTPRequestHandler):
                 raise ValueError('Expected a JSON object.')
             self.reply(run_demo(self.action_name(), body.get('payload', {}), body.get('demo_snapshot')))
         except (ValueError, TypeError, KeyError, AttributeError, IndexError):
-            self.reply({'error': 'Invalid demo request or unavailable ride. Check your choices; if needed, clear this site’s saved browser data.'}, 400)
+            self.reply({'error': 'Invalid request or unavailable ride. Check your choices; if needed, clear this site’s saved browser data.'}, 400)
         except Exception:
-            self.reply({'error': 'The demo could not process this request. Try again.'}, 500)
+            self.reply({'error': 'The service could not process this request. Try again.'}, 500)
