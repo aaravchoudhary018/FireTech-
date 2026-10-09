@@ -1,4 +1,4 @@
-# FireTech — Routekind carpooling prototype
+# FireTech — RideX carpooling prototype
 
 A runnable hackathon prototype in **Python**, with a responsive web interface and local SQLite storage. Concept submitted by Akshita.
 
@@ -75,3 +75,21 @@ Import this repository into Vercel with the repository root (`./`) as Root Direc
 The hosted version uses `api/index.py`, which exports Vercel's required Python `handler`. Its temporary database is isolated per request and removed afterwards. Each visitor's demo state is kept in their browser's local storage and sent to the function to process their actions. It survives reloads in the same browser but does not synchronize across devices or tabs. Clearing site data resets it. Use sample profile/contact details only. This is editable demo data, not authenticated accounts or authoritative reservations. The local `python3 app.py` version continues to use SQLite on disk.
 
 No database service, API key, or additional Python package is required for the hosted demo. Real multi-user persistence would require a server-side database and authentication.
+
+
+## RideX journey map and emergency contact
+
+The navigation's **Live map** button opens the integrated React + Tailwind dark dashboard under `/dashboard/`. All built assets are included under `static/dashboard/`. The original search, booking, profile and ride-offer flows remain available.
+
+The red **SOS** button opens a trusted-contact drawer. Its saved name/phone live only in browser local storage, separate from the booking API. The call links hand off to the device dialer; no call happens automatically. Location is requested only on **Use my current location**. The illustration is a placeholder; browser coordinates and their accuracy are displayed separately. **Copy location** copies a Maps link, ready to paste into a message yourself. RideX does not dispatch assistance.
+
+### Enable Mapbox
+
+Set these two environment variables in Vercel, then redeploy:
+
+- `MAPBOX_PUBLIC_TOKEN`: a `pk.` token for browser map tiles, restricted to your website URLs. `/api/map-config` returns this browser-public token. Never place a secret token here.
+- `MAPBOX_DIRECTIONS_TOKEN`: server-only token allowed to call Mapbox Directions. `/api/route` fetches the fixed Indiranagar → RMZ Ecospace route with `driving-traffic`, full GeoJSON geometry and congestion annotations. It caches successful responses for 120 seconds per Python process.
+
+Select **Live Mapbox** in the dashboard after setting both tokens. With no credentials it stays in labeled demo mode. Distance/ETA become provider values; unknown traffic coverage stays grey. Movement, signal countdowns, savings and safety score are illustrative simulation, including in live route mode. No GPS vehicle tracking or live signal-phase feed is implemented.
+
+Source for the React dashboard is included in `dashboard-source.zip`; extract it into a separate folder. to rebuild integrated assets use `npm run build` there and copy `dist/` into `static/dashboard/`. Its Vite base is `/dashboard/`. Official references: [Mapbox GL JS](https://docs.mapbox.com/mapbox-gl-js/guides/get-started/), [Directions/traffic annotations](https://docs.mapbox.com/api/navigation/directions/), [token restrictions](https://docs.mapbox.com/accounts/guides/tokens/).

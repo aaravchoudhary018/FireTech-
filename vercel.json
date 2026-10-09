@@ -1,14 +1,59 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "builds": [
-    { "src": "api/index.py", "use": "@vercel/python" },
-    { "src": "static/**", "use": "@vercel/static" }
+    {
+      "src": "api/index.py",
+      "use": "@vercel/python"
+    },
+    {
+      "src": "api/map.py",
+      "use": "@vercel/python"
+    },
+    {
+      "src": "static/**",
+      "use": "@vercel/static"
+    }
   ],
   "routes": [
-    { "src": "/", "dest": "/static/index.html" },
-    { "src": "/app.js", "dest": "/static/app.js" },
-    { "src": "/style.css", "dest": "/static/style.css" },
-    { "src": "/hero.png", "dest": "/static/hero.png" },
-    { "src": "/api/(state|search|book|booking|profile|verify|offer|sos)", "dest": "/api/index.py?action=$1" }
+    {
+      "src": "/api/route",
+      "dest": "/api/map.py"
+    },
+    {
+      "src": "/api/map-config",
+      "dest": "/api/map.py?action=config"
+    },
+    {
+      "src": "/rx-logo.png",
+      "dest": "/static/rx-logo.png"
+    },
+    {
+      "src": "/dashboard/?",
+      "dest": "/static/dashboard/index.html"
+    },
+    {
+      "src": "/dashboard/(.*)",
+      "dest": "/static/dashboard/$1"
+    },
+    {
+      "src": "/",
+      "dest": "/static/index.html"
+    },
+    {
+      "src": "/app.js",
+      "dest": "/static/app.js"
+    },
+    {
+      "src": "/style.css",
+      "dest": "/static/style.css"
+    },
+    {
+      "src": "/hero.png",
+      "dest": "/static/hero.png"
+    },
+    {
+      "src": "/api/(state|search|book|booking|profile|verify|offer|sos)",
+      "dest": "/api/index.py?action=$1"
+    }
   ]
 }

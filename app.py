@@ -224,6 +224,24 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         path = urlparse(self.path).path
+        if path in ('/api/route', '/api/map-config'):
+            from api.map import handler as MapHandler
+            if path == '/api/map-config':
+                self.path = '/api/map.py?action=config'
+            return MapHandler.do_GET(self)
+        if path.startswith('/dashboard/') or path == '/rx-logo.png':
+            import mimetypes
+            relative = 'dashboard/index.html' if path == '/dashboard/' else path.lstrip('/')
+            target = (ROOT / 'static' / relative).resolve()
+            if not target.is_relative_to((ROOT / 'static').resolve()) or not target.is_file():
+                return self.send_json({'error':'Not found'},404)
+            content=target.read_bytes()
+            self.send_response(200)
+            self.send_header('Content-Type',mimetypes.guess_type(str(target))[0] or 'application/octet-stream')
+            self.send_header('Content-Length',str(len(content)))
+            self.end_headers()
+            self.wfile.write(content)
+            return
         if path == '/api/state':
             with connection() as conn:
                 rides = records(conn, 'rides')
