@@ -370,7 +370,7 @@ Six-member team. Names and usernames are recorded only when supplied; contributi
 | 1 | Tanmay Daga | [tanmay-daga](https://github.com/tanmay-daga) | — |
 | 2 | Dibakar Das | [dibakar704](https://github.com/dibakar704) | — |
 | 3 | Suryansh Singh | [rsuryansh9026](https://github.com/rsuryansh9026) | — |
-| 4 | — | — | — |
+| 4 | Aarav Choudhary | [aaravchoudhary018](https://github.com/aaravchoudhary018) | — |
 | 5 | — | — | — |
 | 6 | — | — | — |
 
