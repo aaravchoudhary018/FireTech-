@@ -233,7 +233,7 @@ class Handler(BaseHTTPRequestHandler):
                     'profile': get(conn, 'settings', 'profile'), 'today': today().isoformat()})
             return
         files = {'/': ('index.html', 'text/html'), '/app.js': ('app.js', 'text/javascript'),
-                 '/style.css': ('style.css', 'text/css')}
+                 '/style.css': ('style.css', 'text/css'), '/hero.png': ('hero.png', 'image/png')}
         if path not in files:
             self.send_json({'error': 'Not found'}, 404)
             return

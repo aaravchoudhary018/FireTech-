@@ -8,6 +8,7 @@
     { "src": "/", "dest": "/static/index.html" },
     { "src": "/app.js", "dest": "/static/app.js" },
     { "src": "/style.css", "dest": "/static/style.css" },
+    { "src": "/hero.png", "dest": "/static/hero.png" },
     { "src": "/api/(state|search|book|booking|profile|verify|offer|sos)", "dest": "/api/index.py?action=$1" }
   ]
 }
