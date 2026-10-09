@@ -9,6 +9,7 @@ The backend uses Python and SQLite. The main frontend uses HTML, CSS and JavaScr
 | Public source code | [GitHub repository](https://github.com/aaravchoudhary018/FireTech-) |
 | Live application | [RideX on Vercel](https://firetech-murex.vercel.app/) |
 | Journey dashboard | [Open journey map](https://firetech-murex.vercel.app/dashboard/) |
+| Presentation | [Download ideathon PPTX](docs/presentation/RideX-Ideathon-Presentation.pptx) |
 | Team size | 6 members |
 | Current scope | Interactive personal commute planner with example schedules |
 
