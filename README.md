@@ -373,7 +373,7 @@ Six-member team. Names and usernames are recorded only when supplied; contributi
 | 3 | Suryansh Singh | [rsuryansh9026](https://github.com/rsuryansh9026) | — |
 | 4 | Aarav Choudhary | [aaravchoudhary018](https://github.com/aaravchoudhary018) | — |
 | 5 | Aman Verma | [Aman-verma-crypto](https://github.com/Aman-verma-crypto) | — |
-| 6 | — | — | — |
+| 6 | Avishkar Arvind Rathod | [ayurathod4207-cyber](https://github.com/ayurathod4207-cyber) | — |
 
 ## Submission Checklist
 
@@ -381,7 +381,7 @@ Six-member team. Names and usernames are recorded only when supplied; contributi
 - [x] Vercel application link and evaluation instructions.
 - [x] Feature status, trade-offs, architecture, APIs and limitations documented.
 - [x] Local setup and regression-test instructions.
-- [ ] Complete all six member names/usernames and actual contributions.
+- [ ] Complete actual contributions for all six members.
 - [ ] Configure Google Maps keys if an embedded traffic map is required for evaluation.
 - [ ] Confirm both submission links open on the judges' devices and meet the event's specific rules.
 
