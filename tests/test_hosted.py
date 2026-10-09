@@ -20,14 +20,14 @@ class HostedTests(unittest.TestCase):
     def test_booking_survives_new_function_request(self):
         day = app.today()
         day += timedelta(days=(7-day.weekday()) % 7)
-        query = dict(origin='indiranagar', destination='ecospace', date=day.isoformat(),
-                     time='08:30', tolerance=20, women_only=True, verified_only=True)
+        query = dict(origin='indiranagar', destination='whitefield', date=day.isoformat(),
+                     time='08:30', tolerance=20, women_only=True, verified_only=False)
         first = run_demo('search', query)
         self.assertEqual(first['matches'][0]['id'], 'r1')
         booked = run_demo('book', {**query, 'ride_id': 'r1'}, first['demo_snapshot'])
         restored = run_demo('state', {}, booked['demo_snapshot'])
         self.assertEqual(len(restored['bookings']), 1)
-        self.assertEqual(restored['bookings'][0]['amount'], 44)
+        self.assertEqual(restored['bookings'][0]['amount'], 79.2)
         self.assertEqual(run_demo('state', {})['bookings'], [])
 
     def test_parallel_visitors_do_not_share_state(self):

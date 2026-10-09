@@ -16,8 +16,8 @@ class PrototypeTests(unittest.TestCase):
         app.init_db()
         day = app.today()
         day += timedelta(days=(7 - day.weekday()) % 7)
-        self.query = dict(origin='indiranagar', destination='ecospace', date=day.isoformat(),
-                          time='08:30', tolerance=20, women_only=False, verified_only=True)
+        self.query = dict(origin='indiranagar', destination='whitefield', date=day.isoformat(),
+                          time='08:30', tolerance=20, women_only=False, verified_only=False)
 
     def tearDown(self):
         self.temp.cleanup()
@@ -30,7 +30,7 @@ class PrototypeTests(unittest.TestCase):
 
     def test_direction_and_time(self):
         self.assertGreater(len(self.search()), 0)
-        self.assertEqual(self.search(origin='ecospace', destination='indiranagar'), [])
+        self.assertEqual(self.search(origin='whitefield', destination='indiranagar'), [])
         self.assertEqual(self.search(time='13:00'), [])
         self.assertEqual(self.search()[0]['score'], 100)
 
@@ -40,14 +40,14 @@ class PrototypeTests(unittest.TestCase):
         self.assertEqual(rahul['gap'], 4)
 
     def test_fare_changes_only_on_shared_segments(self):
-        path = shortest_path('indiranagar', 'ecospace')
-        me = {'origin': 'indiranagar', 'destination': 'ecospace'}
+        path = shortest_path('indiranagar', 'whitefield')
+        me = {'origin': 'indiranagar', 'destination': 'whitefield'}
         alone = fare(path, **me, passengers=[me])
-        other = {'origin': 'domlur', 'destination': 'bellandur'}
+        other = {'origin': 'domlur', 'destination': 'whitefield'}
         shared = fare(path, **me, passengers=[other, me])
-        self.assertEqual(alone['amount'], 44)
-        self.assertEqual(shared['amount'], 36)
-        self.assertEqual([s['people'] for s in shared['segments']], [2, 3, 2])
+        self.assertEqual(alone['amount'], 79.2)
+        self.assertEqual(shared['amount'], 56.53)
+        self.assertEqual([s['people'] for s in shared['segments']], [2, 3])
 
     def test_women_filter_enforced_from_profile(self):
         self.assertTrue(all(r['women_only'] for r in self.search(women_only=True)))
@@ -90,15 +90,16 @@ class PrototypeTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             app.dispatch('/api/booking', {'id': booking['id'], 'action': 'rate', 'rating': 1})
 
-    def test_offer_and_demo_verification(self):
-        app.dispatch('/api/offer', {'origin': 'indiranagar', 'destination': 'ecospace',
+    def test_offer_cannot_self_verify(self):
+        app.dispatch('/api/offer', {'origin': 'indiranagar', 'destination': 'whitefield',
             'departure': '08:00', 'seats': 2, 'rate': 8, 'car': 'Demo car', 'days': [0, 1],
             'women_only': True})
-        app.dispatch('/api/verify', {})
+        with self.assertRaisesRegex(ValueError, 'not connected'):
+            app.dispatch('/api/verify', {})
         with app.connection() as conn:
             rides = [r for r in app.records(conn, 'rides') if r['driver_id'] == 'you']
             self.assertEqual(len(rides), 1)
-            self.assertTrue(rides[0]['verified'])
+            self.assertFalse(rides[0]['verified'])
         self.assertFalse(any(r['driver_id'] == 'you' for r in self.search()))
 
 
