@@ -4,6 +4,7 @@ import json
 import sqlite3
 import os
 import uuid
+from contextvars import ContextVar
 from datetime import date, datetime, timedelta, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -12,6 +13,7 @@ from core import STOPS, EDGES, shortest_path, minutes, match, next_dates
 
 ROOT = Path(__file__).resolve().parent
 DB = Path(os.environ.get('ROUTEKIND_DB', str(ROOT / 'routekind.db')))
+REQUEST_DB = ContextVar('request_db', default=None)
 
 
 def today():
@@ -19,7 +21,7 @@ def today():
 
 
 def connection():
-    conn = sqlite3.connect(DB, timeout=15)
+    conn = sqlite3.connect(REQUEST_DB.get() or DB, timeout=15)
     conn.row_factory = sqlite3.Row
     return conn
 

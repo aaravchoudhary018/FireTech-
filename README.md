@@ -66,3 +66,12 @@ python3 -m unittest discover -s tests -v
 ```
 
 Tests use temporary databases and do not change your demo records. To start fresh, stop the app and remove the generated `routekind.db` file. It is recreated next time you launch. To isolate another demo, set the `ROUTEKIND_DB` environment variable to another writable database path.
+
+
+## Deploy the shareable demo to Vercel
+
+Import this repository into Vercel with the repository root (`./`) as Root Directory. The committed `vercel.json` defines the Python function and static homepage routes. Leave framework as Other and clear custom Build Command / Output Directory overrides. Redeploy the latest commit after configuration changes.
+
+The hosted version uses `api/index.py`, which exports Vercel's required Python `handler`. Its temporary database is isolated per request and removed afterwards. Each visitor's demo state is kept in their browser's local storage and sent to the function to process their actions. It survives reloads in the same browser but does not synchronize across devices or tabs. Clearing site data resets it. Use sample profile/contact details only. This is editable demo data, not authenticated accounts or authoritative reservations. The local `python3 app.py` version continues to use SQLite on disk.
+
+No database service, API key, or additional Python package is required for the hosted demo. Real multi-user persistence would require a server-side database and authentication.

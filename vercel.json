@@ -1,0 +1,13 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "builds": [
+    { "src": "api/index.py", "use": "@vercel/python" },
+    { "src": "static/**", "use": "@vercel/static" }
+  ],
+  "routes": [
+    { "src": "/", "dest": "/static/index.html" },
+    { "src": "/app.js", "dest": "/static/app.js" },
+    { "src": "/style.css", "dest": "/static/style.css" },
+    { "src": "/api/(state|search|book|booking|profile|verify|offer|sos)", "dest": "/api/index.py?action=$1" }
+  ]
+}
