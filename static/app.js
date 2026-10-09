@@ -5,7 +5,37 @@ const days = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
 let state, matches = [], currentQuery, selected, activeTrip;
 let toastTimer;
 function toast(message){ $('#toast').textContent=message; $('#toast').classList.add('show'); clearTimeout(toastTimer); toastTimer=setTimeout(()=>$('#toast').classList.remove('show'),6500); }
-async function api(path, data){ const response=await fetch('/api/'+path, data === undefined ? {} : {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)}); const result=await response.json(); if(!response.ok) throw new Error(result.error || 'Unable to complete this action.'); return result; }
+let browserMode = false, demoSnapshot = null, requestQueue = Promise.resolve();
+const storageKey = 'routekind-demo-v1';
+async function requestApi(path, data){
+  const body = browserMode ? {payload:data || {}, demo_snapshot:demoSnapshot} : data;
+  const response = await fetch('/api/'+path, body === undefined ? {} : {
+    method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)
+  });
+  let result;
+  try { result = await response.json(); } catch { throw new Error('The website API is unavailable. Check that the latest Vercel deployment is ready.'); }
+  if(!response.ok) throw new Error(result.error || 'Unable to complete this action.');
+  if(result.storage_mode === 'browser'){
+    const first = !browserMode;
+    browserMode = true;
+    if(first){
+      try { demoSnapshot = JSON.parse(localStorage.getItem(storageKey) || 'null'); }
+      catch { localStorage.removeItem(storageKey); }
+      if(demoSnapshot) return requestApi('state', {});
+    }
+    demoSnapshot = result.demo_snapshot;
+    try { localStorage.setItem(storageKey, JSON.stringify(demoSnapshot)); }
+    catch { toast('Browser storage is unavailable. Demo changes last only until this page closes.'); }
+    delete result.demo_snapshot;
+    if(result.message) result.message = result.message.replaceAll('locally','in your browser demo').replaceAll('local demo','browser demo');
+  }
+  return result;
+}
+function api(path, data){
+  const pending = requestQueue.then(()=>requestApi(path,data));
+  requestQueue = pending.catch(()=>{});
+  return pending;
+}
 async function action(fn){try{await fn();}catch(error){toast(error.message);const box=$('#modal-content .modal-error');if(box){box.textContent=error.message;box.hidden=false;}}}
 function name(id){return state.stops[id]?.name || id;}
 function initials(value){return value.split(' ').map(s=>s[0]).slice(0,2).join('');}
@@ -84,5 +114,5 @@ $('#profile-form').onsubmit=e=>{e.preventDefault();action(async()=>{const result
 $('#verify-button').onclick=()=>action(async()=>{const result=await api('verify',{});await refresh();renderProfile();toast(result.message);});
 $('#offer-form').onsubmit=e=>{e.preventDefault();action(async()=>{const result=await api('offer',{origin:$('#offer-origin').value,destination:$('#offer-destination').value,departure:$('#offer-time').value,seats:Number($('#offer-seats').value),rate:Number($('#offer-rate').value),car:$('#offer-car').value,days:chosenDays('#offer-days'),women_only:$('#offer-women').checked});await refresh();renderOffers();toast(result.message);});};
 function renderOffers(){const offers=state.rides.filter(r=>r.driver_id==='you');$('#offered-list').innerHTML=offers.length?offers.map(r=>`<article class="trip-card"><div><span class="tag">${r.verified?'Demo verified':'Unverified'}</span>${r.women_only?'<span class="tag women">Women only</span>':''}<h3>${esc(name(r.origin))} → ${esc(name(r.destination))}</h3><p>${r.departure} · ${r.days.map(d=>days[d]).join(', ')} · ${r.seats} passenger seats · ${esc(r.car)}</p></div><strong>${money(r.rate)}<small> / vehicle km</small></strong></article>`).join(''):'<p class="help">You haven’t offered a ride yet.</p>';}
-async function init(){await refresh();['#origin','#destination','#offer-origin','#offer-destination'].forEach(id=>$(id).innerHTML=options());$('#origin').value=$('#offer-origin').value='indiranagar';$('#destination').value=$('#offer-destination').value='ecospace';$('#date').value=state.today;$('#date').min=state.today;dayPicker('#offer-days');renderProfile();await search();}
+async function init(){await refresh();['#origin','#destination','#offer-origin','#offer-destination'].forEach(id=>$(id).innerHTML=options());$('#origin').value=$('#offer-origin').value='indiranagar';$('#destination').value=$('#offer-destination').value='ecospace';if(browserMode){document.querySelectorAll('.help,.notice').forEach(el=>{el.textContent=el.textContent.replace('Stored only in your local database. No messages are sent.','Demo contact saved in this browser and sent to the server to process actions. Use sample details only. No messages are sent.').replace('Published rides are saved locally. This is a single-user demo; other commuters cannot access them.','Published rides are saved in this browser’s private demo. Other visitors cannot access them.');});$('.demo-note').textContent='Online demo · Changes saved in this browser only; sent to the server to process actions. Use sample details. No real bookings, payments, identity checks or GPS.';}$('#date').value=state.today;$('#date').min=state.today;dayPicker('#offer-days');renderProfile();await search();}
 action(init);
