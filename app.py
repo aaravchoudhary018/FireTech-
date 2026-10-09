@@ -36,20 +36,43 @@ def init_db():
         ''')
         if not conn.execute('SELECT 1 FROM rides LIMIT 1').fetchone():
             people = [
-                ('r1', 'Ananya Rao', 'woman', 'indiranagar', 'ecospace', '08:30', True, 4.9, 'Hyundai i20 · White', 3, [0,1,2,3,4]),
-                ('r2', 'Rahul Mehta', 'man', 'mgroad', 'ecospace', '08:15', False, 4.8, 'Maruti Baleno · Blue', 3, [0,1,2,3,4]),
+                ('r1', 'Ananya Rao', 'woman', 'indiranagar', 'whitefield', '08:30', True, 4.9, 'Hyundai i20 · White', 3, [0,1,2,3,4]),
+                ('r2', 'Rahul Mehta', 'man', 'mgroad', 'whitefield', '08:15', False, 4.8, 'Maruti Baleno · Blue', 3, [0,1,2,3,4]),
                 ('r3', 'Priya Sharma', 'woman', 'indiranagar', 'whitefield', '08:35', True, 4.9, 'Tata Nexon · Silver', 2, [0,1,2,3,4,5,6]),
-                ('r4', 'Dev Patel', 'man', 'indiranagar', 'ecospace', '08:45', False, 4.7, 'Honda City · Grey', 3, [0,1,2,3,4,5,6]),
-                ('r5', 'Neha Iyer', 'woman', 'koramangala', 'ecospace', '09:00', True, 4.8, 'Maruti Swift · Red', 2, [0,1,2,3,4]),
+                ('r4', 'Dev Patel', 'man', 'indiranagar', 'whitefield', '08:45', False, 4.7, 'Honda City · Grey', 3, [0,1,2,3,4,5,6]),
+                ('r5', 'Neha Iyer', 'woman', 'koramangala', 'whitefield', '09:00', True, 4.8, 'Maruti Swift · Red', 2, [0,1,2,3,4]),
             ]
             for rid, name, gender, origin, destination, departure, women, rating, car, seats, days in people:
                 put(conn, 'rides', rid, dict(id=rid, driver_id=rid, name=name, gender=gender,
                     origin=origin, destination=destination, departure=departure, women_only=women,
-                    rating=rating, reviews=32, car=car, seats=seats, days=days, verified=True,
+                    rating=None, reviews=0, example=True, car=car, seats=seats, days=days, verified=False,
                     rate=8, path=shortest_path(origin, destination)))
         if not conn.execute('SELECT 1 FROM settings WHERE id="profile"').fetchone():
             put(conn, 'settings', 'profile', {'name': 'Maya Singh', 'gender': 'woman', 'verified': False,
                                             'contact': '', 'phone': ''})
+
+
+def migrate_locations():
+    """Upgrade saved planning records without losing reservations or contacts."""
+    aliases = {'ecospace': 'whitefield', 'ejipura': 'koramangala',
+               'bellandur': 'domlur', 'marathahalli': 'whitefield'}
+    with connection() as conn:
+        for table in ('rides', 'bookings'):
+            for item in records(conn, table):
+                for key in ('origin', 'destination'):
+                    item[key] = aliases.get(item.get(key), item.get(key))
+                if item.get('origin') == item.get('destination'):
+                    item['destination'] = 'ubcity' if item['origin'] != 'ubcity' else 'indiranagar'
+                if table == 'rides':
+                    item['path'] = shortest_path(item['origin'], item['destination'])
+                    item['verified'] = False  # No identity provider is connected.
+                    if 'example' not in item and item['driver_id'] != 'you':
+                        item['rating'], item['reviews'] = None, 0
+                    item['example'] = item['driver_id'] != 'you'
+                put(conn, table, item['id'], item)
+        profile = get(conn, 'settings', 'profile')
+        profile['verified'] = False
+        put(conn, 'settings', 'profile', profile)
 
 
 def put(conn, table, key, data):
@@ -127,7 +150,7 @@ def dispatch(path, data):
                 pending.append(booking)
             for booking in pending:
                 put(conn, 'bookings', booking['id'], booking)
-            return {'message': f'{len(pending)} ride' + ('s' if len(pending) != 1 else '') + ' booked. No payment taken.', 'bookings': pending}
+            return {'message': f'{len(pending)} ride' + ('s' if len(pending) != 1 else '') + ' saved to your planner. No driver contacted or payment taken.', 'bookings': pending}
         if path == '/api/booking':
             booking = get(conn, 'bookings', data.get('id'))
             action = data.get('action')
@@ -148,7 +171,7 @@ def dispatch(path, data):
                 booking['started_at'] = datetime.now(timezone.utc).isoformat()
             elif action == 'progress':
                 if booking['status'] != 'in_progress':
-                    raise ValueError('Start the demo trip first.')
+                    raise ValueError('Start the trip first.')
                 booking['progress'] = min(100, booking['progress'] + 20)
                 if booking['progress'] == 100:
                     booking['status'] = 'completed'
@@ -160,7 +183,7 @@ def dispatch(path, data):
                     raise ValueError('Choose a rating from 1 to 5.')
                 booking['rating'] = rating
                 ride = get(conn, 'rides', booking['ride_id'])
-                ride['rating'] = round((ride['rating'] * ride['reviews'] + rating) / (ride['reviews'] + 1), 2)
+                ride['rating'] = round(((ride['rating'] or 0) * ride['reviews'] + rating) / (ride['reviews'] + 1), 2)
                 ride['reviews'] += 1
                 put(conn, 'rides', ride['id'], ride)
             elif action not in ('start', 'progress'):
@@ -176,18 +199,12 @@ def dispatch(path, data):
             put(conn, 'settings', 'profile', profile)
             return {'message': 'Profile and emergency contact saved locally.'}
         if path == '/api/verify':
-            profile['verified'] = True
-            put(conn, 'settings', 'profile', profile)
-            for ride in records(conn, 'rides'):
-                if ride['driver_id'] == 'you':
-                    ride['verified'] = True
-                    put(conn, 'rides', ride['id'], ride)
-            return {'message': 'Demo verification complete. No real identity check was performed.'}
+            raise ValueError('Identity verification is not connected. A profile photo cannot verify identity.')
         if path == '/api/offer':
             route = shortest_path(data.get('origin'), data.get('destination'))
             minutes(data.get('departure'))
             if minutes(data['departure']) > 22 * 60:
-                raise ValueError('For this demo, choose departure before 10 pm.')
+                raise ValueError('Choose departure before 10 pm.')
             seats, rate = int(data.get('seats', 0)), float(data.get('rate', 0))
             if seats not in range(1, 5) or not 2 <= rate <= 20:
                 raise ValueError('Choose 1–4 passenger seats and a cost between ₹2 and ₹20 per km.')
@@ -200,15 +217,15 @@ def dispatch(path, data):
                 car=clean_text(data, 'car'), seats=seats, days=weekdays(data.get('days')),
                 verified=profile['verified'], rate=rate, path=route)
             put(conn, 'rides', rid, ride)
-            return {'message': 'Your recurring ride is published in this local demo.'}
+            return {'message': 'Your recurring ride is saved in your personal planner. Other visitors cannot access it.'}
         if path == '/api/sos':
             booking = get(conn, 'bookings', data.get('id'))
             if booking['status'] != 'in_progress':
-                raise ValueError('Start the demo trip before testing the alert.')
+                raise ValueError('Start the trip before recording an alert.')
             eid = uuid.uuid4().hex
             put(conn, 'events', eid, {'booking_id': booking['id'], 'type': 'demo_sos',
                 'time': datetime.now(timezone.utc).isoformat(), 'progress': booking['progress']})
-            return {'message': 'Demo alert recorded locally. Nobody was contacted. Use your phone for a real emergency.'}
+            return {'message': 'Alert recorded locally. Nobody was contacted. Use your phone for a real emergency.'}
         raise ValueError('Unknown action.')
 
 
@@ -291,6 +308,7 @@ if __name__ == '__main__':
     parser.add_argument('--port', type=int, default=8000)
     args = parser.parse_args()
     init_db()
+    migrate_locations()
     server = ThreadingHTTPServer(('127.0.0.1', args.port), Handler)
     print(f'Routekind is ready → http://127.0.0.1:{args.port}', flush=True)
     try:

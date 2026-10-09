@@ -1,95 +1,90 @@
-# FireTech — RideX carpooling prototype
+# RideX — Bengaluru carpool commute planner
 
-A runnable hackathon prototype in **Python**, with a responsive web interface and local SQLite storage. Concept submitted by Akshita.
+Python backend, responsive web UI, and a React + Tailwind Google Maps dashboard.
+Live site: https://firetech-murex.vercel.app/
 
-## Run it
+## What works
 
-Requires Python 3.9 or newer. **No packages, API keys, or installation needed.**
+- Ten genuine Bengaluru destinations; direction, weekday, time window and capacity matching.
+- Search loading, matching results, no-result guidance and retry handling.
+- Segment-by-segment cost estimates; 14-day recurring plans, cancellation and personal trip progress.
+- Saving profile/preferences and recurring offers; local schedule ratings.
+- Permission-based camera capture for a **profile photo only**, with local save/delete and camera shutdown on close.
+- SOS contact saving, phone links, permission-based device location and location copying.
+- Carpool benefits, accessible FAQ accordions and working help/footer controls.
+- Google Maps JavaScript dark map, TrafficLayer, traffic-aware Google Routes polylines, route distance/ETA and optional device geolocation once configured.
 
-Clone this repository, or download and extract its ZIP. Open a terminal in the project folder (the extracted ZIP folder may be named `FireTech--main`):
+## Run locally
+
+Requires Python 3.9+; no Python packages are needed.
 
 ```sh
-cd FireTech-
-python3 app.py
+python3 app.py --port 8005
 ```
 
-Open **http://127.0.0.1:8000** in your browser. On Windows, use `py app.py` if `python3` is unavailable. If the port is busy, run `python3 app.py --port 8001` and use that port instead. Stop with Ctrl+C.
+Open http://127.0.0.1:8005/. Local planning data uses SQLite (`routekind.db`, ignored by Git). Set `ROUTEKIND_DB` to select another database. Hosted Vercel planning records use isolated per-request databases with browser-owned snapshots saved in local storage. Old locations migrate without deleting bookings or contacts.
 
-The application works offline; optional Google Fonts fall back to system fonts when unavailable. The backend and route algorithm are Python; the browser interface uses HTML, CSS, and JavaScript.
+## Google Maps setup — keys not provided yet
 
-## Five-minute presentation
+1. Open [Google Cloud Console](https://console.cloud.google.com/) and select/create your project. Enable billing and set budget alerts and API quotas.
+2. Enable **Maps JavaScript API** and **Routes API** in APIs & Services → Library.
+3. Create two separate API keys in APIs & Services → Credentials.
+4. Browser key: select **Websites** restrictions. Allow `https://firetech-murex.vercel.app/*` and your chosen localhost URL, such as `http://127.0.0.1:8005/*`. Restrict API access to **Maps JavaScript API**.
+5. Server key: restrict API access to **Routes API**. Do not use website/referrer restrictions for this server key. Add server IP restrictions if your deployment has fixed outbound IPs; otherwise use quotas and a suitable server gateway before a public production launch.
+6. In Vercel → Project → Settings → Environment Variables, add:
+   - `GOOGLE_MAPS_BROWSER_KEY` = browser key (intentionally public to the browser).
+   - `GOOGLE_ROUTES_API_KEY` = private server key. **Never commit this key or give it a VITE_ prefix.**
+7. Redeploy the project. Open Live map, choose locations and click **Show route**. The map uses the configured browser key; the Python server makes Routes requests with the private key.
+8. Test valid routing, denied key/billing, no-route and quota failures. Until keys are configured, the map explains setup is pending and provides an external Google Maps directions link.
 
-1. **Find a ride:** Keep Indiranagar → RMZ Ecospace at 08:30. Use a weekday for the most demo drivers. Three drivers match the default weekday search, ranked by route efficiency and pickup time.
-2. **Trust and preferences:** Enable Women-only rides and search again. Ananya's ride matches. Her verification and ratings are explicitly sample data.
-3. **Fair costs:** Choose View ride. The 11 km demo trip at ₹8 per vehicle km costs ₹44 per person with a driver and one passenger. The breakdown shows the cost of every segment.
-4. **Recurring commute:** Enable the recurring option, select the driver's weekdays, and confirm. The app reserves each selected date in the next 14 days atomically. My trips displays all bookings. No real payment is processed.
-5. **Trip experience:** Start a demo trip, advance the simulated location, copy a trip status, and test the local SOS log. Five advances complete a trip. Leave a star rating and see it persist.
-6. **Offer a ride:** Add your own recurring route, car, seats, and cost per km. It appears under Your offered rides. Your own ride is excluded from your passenger matches.
-7. **Safety & profile:** Edit your profile and trusted contact. Try the clearly labeled verification simulation. Reload to demonstrate persistence.
+Local setup: set these two environment variables in your terminal environment before starting Python. Do not paste credentials into chat, screenshots, source files or GitHub.
 
-## How the matching works
+`GET /api/map-config` returns only the browser key and a server-configured boolean. `GET /api/route?origin=indiranagar&destination=whitefield` accepts only the fixed location catalog. The Routes request uses `TRAFFIC_AWARE_OPTIMAL`, `TRAFFIC_ON_POLYLINE`, `GEO_JSON_LINESTRING` and an explicit field mask. Successful pairs cache for 120 seconds per Python process. Unknown traffic remains grey. The dashboard retrieves data when Show route is pressed; it does not claim continuous driver tracking. Device location is collected only by an explicit click, can be stopped, and is never a driver location.
 
-- A small, explicitly synthetic Bengaluru road graph connects nine neighborhoods. Dijkstra's algorithm finds the shortest driver route.
-- Pickup and drop-off must lie on the driver's route **in the correct order**. The demo intentionally requires exact graph stops; it does not support arbitrary addresses or nearby detours.
-- Pickup time includes the driver's travel before reaching you, assuming 24 km/h for the demo. A match must fall inside your chosen ±10/20/30/60-minute window and operate on the selected weekday.
-- Seat availability is checked on every shared segment. Women-only and demo verification filters are enforced in the Python backend.
-- Match score is 75% rider-route efficiency (shortest rider distance / shared distance) and 25% pickup-time fit. The UI separately shows how much of the driver's total route is shared.
-- Each segment's vehicle cost is split between its driver and onboard passengers. Integer paise avoid floating-point fare accumulation. The requesting rider receives the floor share if a fractional paisa remainder exists; a production settlement system must assign all remaining paise explicitly.
-- Recurring reservations validate every requested date before writing any booking. A database transaction prevents simultaneous writes from overselling seats.
+Official references: [Load Maps JavaScript](https://developers.google.com/maps/documentation/javascript/load-maps-js-api), [Routes traffic polylines](https://developers.google.com/maps/documentation/routes/traffic_on_polylines), [API key security](https://developers.google.com/maps/api-security-best-practices).
 
-## Prototype boundaries
+## Locations and research
 
-This is a **local, single-user demonstration**, not a public transport or safety service. The default profile is Maya Singh; use Safety & profile to change it. Driver names, ratings, verification, road distances, vehicles, and journey times are sample data. Women-only eligibility uses a self-reported profile.
+1. Indiranagar Metro Station
+2. Whitefield (Kadugodi) Metro Station
+3. Cubbon Park Metro Station
+4. UB City, 24 Vittal Mallya Road
+5. Pattanagere Metro Station
+6. Nadaprabhu Kempegowda (Majestic) Metro Station
+7. Jayanagar Metro Station
+8. Koramangala, 80 Feet Road
+9. Domlur Bus Stand
+10. MG Road Metro Station
 
-Tracking advances manually and does not use GPS. Copy trip status creates a static text snapshot, not a remotely accessible tracking link. SOS logs an event locally and contacts nobody. Verification is a simulation; no documents are collected or checked. Bookings are local records, with no actual passengers, notifications, charges, refunds, or emergency dispatch.
+Sources: [BMRCL official station chart](https://english.bmrc.co.in/pd/RetailKioskRateChart.pdf), [Bengaluru Urban tourism](https://bengaluruurban.nic.in/en/tourism/), [UB City official address](https://ubcitybangalore.in/contact-us/). These are city pickup areas and landmarks, not ten central-city locations or designated pickup bays. Whitefield and Pattanagere are farther from the centre. Confirm the exact safe meeting point with the co-rider. RMZ Ecospace was removed at the user's request; it does exist ([RMZ official property page](https://www.rmz.com/real-estate/rmz-office/spaces/rmz-ecospace)).
 
-Booking prices are **stored estimates**, not final settlements; recurring totals preview the same initial estimate and the backend calculates each date individually. There is one reservation per passenger per date to keep the demo flow simple. Demo trips can be started early for presentations. Published driver schedules repeat indefinitely; passenger recurring reservations cover 14 days. The demo has no offered-ride editing or multi-user accounts.
+## Scope and honest status
 
-A production version needs authentication and authorization, real routing/traffic data, consent-based GPS, driver/vehicle verification, vetted emergency integrations, payment and settlement services, reporting/moderation, secure storage, retention controls, and operational support. The development server binds to your own computer only and should not be exposed publicly.
+The schedules are **examples**, and saved offers/plans are private to one browser. They do not contact a driver, reserve a real seat, or charge money. Names, cars, graph distances and times are planning examples. The estimated road graph still powers matching/fare splitting; Google road distance/ETA is displayed separately and does not yet recalculate matched fares or route overlap.
 
-## Files
+A camera photo does **not** validate identity, gender, driving documents or liveness. Profiles remain unverified; the verified-only filter returns no matches. Women-only access uses self-reported profile information. No invented safety percentage, signal countdown or simulated live vehicle is presented.
 
-```text
-app.py             Python HTTP API, SQLite persistence, booking transactions
-core.py            Graph routing, matching, timing, segment fares
-static/index.html  Application screens
-static/style.css   Responsive design
-static/app.js      Browser interaction and illustrative SVG map
-tests/test_app.py  Business-rule and end-to-end backend tests
-routekind.db       Generated on first run; stores your local demo data
+A public multi-user launch still requires authenticated accounts, a durable shared database, real drivers and acceptance/notification flows, server-authoritative booking/capacity, GPS consent and tracking, identity/vehicle checks, payments if needed, policies and operational support. Editable browser snapshots are never trusted identity or booking credentials. Google API quotas should protect the public route proxy; authentication/rate limiting must be added for production.
+
+## Build the React dashboard
+
+Source is included in `dashboard-source.zip`. Extract separately, run:
+
+```sh
+npm install
+npm run build
 ```
 
-## Test
+Copy `dist/` contents to `static/dashboard/`. Vite uses `/dashboard/` as its base. The integrated Python app serves API calls; use its preview for end-to-end testing. Old Mapbox simulation source is no longer used by the dashboard.
+
+## Tests
 
 ```sh
 python3 -m unittest discover -s tests -v
 ```
 
-Tests use temporary databases and do not change your demo records. To start fresh, stop the app and remove the generated `routekind.db` file. It is recreated next time you launch. To isolate another demo, set the `ROUTEKIND_DB` environment variable to another writable database path.
+Seventeen tests cover matching, fares, women-only preferences, capacity, duplicate and recurring bookings, cancellation, progress/rating, isolated hosted state, legacy migration, location connectivity, Google traffic interval parsing, missing keys and refusing self-verification. Provider calls require keys for real integration testing.
 
+## Deploy
 
-## Deploy the shareable demo to Vercel
-
-Import this repository into Vercel with the repository root (`./`) as Root Directory. The committed `vercel.json` defines the Python function and static homepage routes. Leave framework as Other and clear custom Build Command / Output Directory overrides. Redeploy the latest commit after configuration changes.
-
-The hosted version uses `api/index.py`, which exports Vercel's required Python `handler`. Its temporary database is isolated per request and removed afterwards. Each visitor's demo state is kept in their browser's local storage and sent to the function to process their actions. It survives reloads in the same browser but does not synchronize across devices or tabs. Clearing site data resets it. Use sample profile/contact details only. This is editable demo data, not authenticated accounts or authoritative reservations. The local `python3 app.py` version continues to use SQLite on disk.
-
-No database service, API key, or additional Python package is required for the hosted demo. Real multi-user persistence would require a server-side database and authentication.
-
-
-## RideX journey map and emergency contact
-
-The navigation's **Live map** button opens the integrated React + Tailwind dark dashboard under `/dashboard/`. All built assets are included under `static/dashboard/`. The original search, booking, profile and ride-offer flows remain available.
-
-The red **SOS** button opens a trusted-contact drawer. Its saved name/phone live only in browser local storage, separate from the booking API. The call links hand off to the device dialer; no call happens automatically. Location is requested only on **Use my current location**. The illustration is a placeholder; browser coordinates and their accuracy are displayed separately. **Copy location** copies a Maps link, ready to paste into a message yourself. RideX does not dispatch assistance.
-
-### Enable Mapbox
-
-Set these two environment variables in Vercel, then redeploy:
-
-- `MAPBOX_PUBLIC_TOKEN`: a `pk.` token for browser map tiles, restricted to your website URLs. `/api/map-config` returns this browser-public token. Never place a secret token here.
-- `MAPBOX_DIRECTIONS_TOKEN`: server-only token allowed to call Mapbox Directions. `/api/route` fetches the fixed Indiranagar → RMZ Ecospace route with `driving-traffic`, full GeoJSON geometry and congestion annotations. It caches successful responses for 120 seconds per Python process.
-
-Select **Live Mapbox** in the dashboard after setting both tokens. With no credentials it stays in labeled demo mode. Distance/ETA become provider values; unknown traffic coverage stays grey. Movement, signal countdowns, savings and safety score are illustrative simulation, including in live route mode. No GPS vehicle tracking or live signal-phase feed is implemented.
-
-Source for the React dashboard is included in `dashboard-source.zip`; extract it into a separate folder. to rebuild integrated assets use `npm run build` there and copy `dist/` into `static/dashboard/`. Its Vite base is `/dashboard/`. Official references: [Mapbox GL JS](https://docs.mapbox.com/mapbox-gl-js/guides/get-started/), [Directions/traffic annotations](https://docs.mapbox.com/api/navigation/directions/), [token restrictions](https://docs.mapbox.com/accounts/guides/tokens/).
+Import the GitHub repository into Vercel. `vercel.json` wires Python API functions and static frontend assets. Uploads/commits trigger deployment. Do not upload `routekind.db`, credentials or private profile photos.

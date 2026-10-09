@@ -3,29 +3,30 @@ import heapq
 from datetime import date, datetime, timedelta
 
 STOPS = {
-    'indiranagar': {'name': 'Indiranagar', 'x': 230, 'y': 180},
-    'domlur': {'name': 'Domlur', 'x': 285, 'y': 290},
-    'koramangala': {'name': 'Koramangala', 'x': 190, 'y': 450},
-    'ejipura': {'name': 'Ejipura', 'x': 300, 'y': 400},
-    'ecospace': {'name': 'RMZ Ecospace', 'x': 530, 'y': 415},
-    'bellandur': {'name': 'Bellandur', 'x': 475, 'y': 320},
-    'marathahalli': {'name': 'Marathahalli', 'x': 560, 'y': 215},
-    'whitefield': {'name': 'Whitefield', 'x': 665, 'y': 95},
-    'mgroad': {'name': 'MG Road', 'x': 90, 'y': 170},
+    'indiranagar': {'name': 'Indiranagar Metro Station', 'x': 430, 'y': 180, 'address': 'Indiranagar Metro Station, Bengaluru, Karnataka'},
+    'whitefield': {'name': 'Whitefield (Kadugodi) Metro Station', 'x': 665, 'y': 95, 'address': 'Whitefield Kadugodi Metro Station, Bengaluru, Karnataka'},
+    'cubbonpark': {'name': 'Cubbon Park Metro Station', 'x': 295, 'y': 170, 'address': 'Cubbon Park Metro Station, Bengaluru, Karnataka'},
+    'ubcity': {'name': 'UB City, Vittal Mallya Road', 'x': 305, 'y': 260, 'address': 'UB City, 24 Vittal Mallya Road, Bengaluru, Karnataka'},
+    'pattanagere': {'name': 'Pattanagere Metro Station', 'x': 70, 'y': 390, 'address': 'Pattanagere Metro Station, Bengaluru, Karnataka'},
+    'majestic': {'name': 'Nadaprabhu Kempegowda (Majestic)', 'x': 180, 'y': 205, 'address': 'Nadaprabhu Kempegowda Majestic Metro Station, Bengaluru, Karnataka'},
+    'jayanagar': {'name': 'Jayanagar Metro Station', 'x': 260, 'y': 420, 'address': 'Jayanagar Metro Station, Bengaluru, Karnataka'},
+    'koramangala': {'name': 'Koramangala, 80 Feet Road', 'x': 425, 'y': 450, 'address': 'Koramangala 80 Feet Road, Bengaluru, Karnataka'},
+    'domlur': {'name': 'Domlur Bus Stand', 'x': 475, 'y': 290, 'address': 'Domlur Bus Stand, Bengaluru, Karnataka'},
+    'mgroad': {'name': 'MG Road Metro Station', 'x': 355, 'y': 180, 'address': 'MG Road Metro Station, Bengaluru, Karnataka'},
 }
-# Synthetic road distances for a hackathon demo, not real navigation data.
-EDGES = [('mgroad', 'indiranagar', 4.2), ('indiranagar', 'domlur', 2.8),
-         ('domlur', 'bellandur', 6.0), ('bellandur', 'ecospace', 2.2),
-         ('bellandur', 'marathahalli', 4.5), ('marathahalli', 'whitefield', 6.8),
-         ('koramangala', 'ejipura', 2.1), ('ejipura', 'domlur', 3.2),
-         ('ejipura', 'ecospace', 7.0)]
+# Planning estimates only. Google Routes provides actual navigation distance/ETA.
+EDGES = [('majestic', 'cubbonpark', 4.0), ('cubbonpark', 'mgroad', 1.5),
+         ('cubbonpark', 'ubcity', 2.0), ('mgroad', 'indiranagar', 4.2),
+         ('indiranagar', 'domlur', 2.8), ('domlur', 'whitefield', 17.0),
+         ('domlur', 'koramangala', 5.0), ('koramangala', 'jayanagar', 5.5),
+         ('jayanagar', 'ubcity', 5.0), ('pattanagere', 'majestic', 13.0)]
 DISTANCES = {(a, b): km for a, b, km in EDGES}
 DISTANCES.update({(b, a): km for a, b, km in EDGES})
 
 
 def shortest_path(start, end):
     if start not in STOPS or end not in STOPS or start == end:
-        raise ValueError('Choose two different demo locations.')
+        raise ValueError('Choose two different Bengaluru locations.')
     queue, visited = [(0, start, [start])], set()
     while queue:
         distance, current, path = heapq.heappop(queue)
